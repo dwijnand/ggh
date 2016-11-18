@@ -1,0 +1,6 @@
+[package]
+name = "ggh"
+version = "0.1.0"
+authors = ["Dale Wijnand <dale.wijnand@gmail.com>"]
+
+[dependencies]
