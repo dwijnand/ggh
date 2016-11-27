@@ -3,13 +3,10 @@ extern crate git2;
 use git2::*;
 
 fn run() -> Result<(), git2::Error> {
-    let repo: Repository = try!(Repository::open("/d/guava"));
-    let mut remote: Remote = try!(repo.find_remote("dwijnand"));
+    let repo = try!(Repository::open("/d/guava"));
+    let mut remote = try!(repo.find_remote("dwijnand"));
     try!(remote.connect(Direction::Fetch));
-    let remote_heads: &[RemoteHead] = try!(remote.list());
-    let mut remote_heads_iter = remote_heads.iter();
-    let z = remote_heads_iter.find(|h| h.name() == "z");
-    match z {
+    match try!(remote.list()).iter().find(|h| h.name() == "z") {
         Some(..) => println!("found z"),
         None => println!("not found z"),
     }
