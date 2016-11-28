@@ -5,6 +5,12 @@ rust:
   - beta
   - nightly
 
+# Build only master branch and version tags - http://stackoverflow.com/a/31882307/463761
+branches:
+  only:
+    - master
+    - /^v[0-9]/
+
 matrix:
   allow_failures:
     - rust: nightly
