@@ -10,6 +10,8 @@ fn run() -> Result<(), git2::Error> {
         Some(..) => println!("found z"),
         None => println!("not found z"),
     }
+    // Create branch if it does not exist:
+    // https://github.com/nikomatsakis/cargo-incremental/pull/13/commits/af172ee6f45cd5637782c04720b67c7fd79a68cf
     Ok(())
 }
 
