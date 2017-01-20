@@ -19,6 +19,13 @@ script:
   - cargo build --verbose
   - cargo test --verbose
 
+addons:
+  apt:
+    sources:
+      - kalakris-cmake # provides cmake 2.8.11+ for libssh2-sys
+    packages:
+      - cmake # need cmake 2.8.11+ for libssh2-sys
+
 notifications:
   email:
     on_success: never
