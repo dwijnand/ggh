@@ -16,24 +16,31 @@ macro_rules! error {
     }
 }
 
+fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
+    let mut cb = RemoteCallbacks::new();
+    cb.credentials(|user, _, _| Cred::ssh_key_from_agent(user));
+    cb
+}
+
 fn run() -> Result<(), Error> {
     let repo = &try!(Repository::open("/d/guava"));
 
-    // TODO: Test branches that are remote for z?
-    // instead of testing the remote's reference list
-
     let mut remote = try!(repo.find_remote("dwijnand"));
-    try!(remote.connect(Direction::Fetch));
-    let remote = remote;
 
-    match try!(remote.list()).iter().find(|h| h.name() == "z") {
-        Some(..) => println!("found z"),
-        None => println!("not found z"),
+    let mut opts = FetchOptions::new();
+    opts.remote_callbacks(remote_callbacks());
+    try!(remote.fetch(&["z"], Some(&mut opts), None));
+
+    match repo.find_branch("z", BranchType::Remote) {
+        Ok(..)  => println!("found z"),
+        Err(..) => println!("not found z"),
     }
 
     try!(create_orphan_branch(repo, "z"));
 
-    // push to dwijnand
+    let mut opts = PushOptions::new();
+    opts.remote_callbacks(remote_callbacks());
+    try!(remote.push(&["refs/heads/master"], Some(&mut opts)));
 
     Ok(())
 }
