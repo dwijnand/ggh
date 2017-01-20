@@ -16,16 +16,35 @@ macro_rules! error {
 }
 
 fn run() -> Result<(), git2::Error> {
-    let repo = try!(Repository::open("/d/guava"));
+    let repo = &try!(Repository::open("/d/guava"));
+
     let mut remote = try!(repo.find_remote("dwijnand"));
     try!(remote.connect(Direction::Fetch));
+    let remote = remote;
+
     match try!(remote.list()).iter().find(|h| h.name() == "z") {
         Some(..) => println!("found z"),
         None => println!("not found z"),
     }
-    // Create branch if it does not exist:
-    // https://github.com/nikomatsakis/cargo-incremental/pull/13/commits/af172ee6f45cd5637782c04720b67c7fd79a68cf
+
+    let current_head = repo.head().unwrap();
+    println!("head is: {:?}", current_head.shorthand().unwrap());
+
+    create_branch_if_new(repo, "z", &current_head);
+
     Ok(())
+}
+
+fn create_branch_if_new(repo: &Repository, name: &str, head: &Reference) {
+    if let Ok(_) = repo.find_branch(name, BranchType::Local) {
+        return;
+    }
+
+    println!("creating branch '{}'", name);
+    let commit = repo.find_commit(head.target().unwrap()).unwrap();
+    if let Err(e) = repo.branch(name, &commit, false) {
+        error!("failed to create branch '{}': {}", name, e);
+    }
 }
 
 fn main() {
