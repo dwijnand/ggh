@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 extern crate git2;
 
 use std::io::prelude::*;
@@ -15,8 +16,11 @@ macro_rules! error {
     }
 }
 
-fn run() -> Result<(), git2::Error> {
+fn run() -> Result<(), Error> {
     let repo = &try!(Repository::open("/d/guava"));
+
+    // TODO: Test branches that are remote for z?
+    // instead of testing the remote's reference list
 
     let mut remote = try!(repo.find_remote("dwijnand"));
     try!(remote.connect(Direction::Fetch));
@@ -27,24 +31,29 @@ fn run() -> Result<(), git2::Error> {
         None => println!("not found z"),
     }
 
-    let current_head = repo.head().unwrap();
-    println!("head is: {:?}", current_head.shorthand().unwrap());
+    try!(create_orphan_branch(repo, "z"));
 
-    create_branch_if_new(repo, "z", &current_head);
+    // push to dwijnand
 
     Ok(())
 }
 
-fn create_branch_if_new(repo: &Repository, name: &str, head: &Reference) {
-    if let Ok(_) = repo.find_branch(name, BranchType::Local) {
-        return;
+fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, Error> {
+    if let Ok(b) = repo.find_branch(name, BranchType::Local) {
+        return Ok(b);
     }
+    create_orphan_branch_force(repo, name)
+}
 
+fn create_orphan_branch_force<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, Error> {
     println!("creating branch '{}'", name);
-    let commit = repo.find_commit(head.target().unwrap()).unwrap();
-    if let Err(e) = repo.branch(name, &commit, false) {
-        error!("failed to create branch '{}': {}", name, e);
-    }
+    let tree_b    = try!(repo.treebuilder(None));
+    let tree_id   = try!(tree_b.write());
+    let tree      = try!(repo.find_tree(tree_id));
+    let sig       = &try!(Signature::new("z", "-", &Time::new(0, 0)));
+    let commit_id = try!(repo.commit(None, sig, sig, "", &tree, &[]));
+    let commit    = try!(repo.find_commit(commit_id));
+    repo.branch(name, &commit, false)
 }
 
 fn main() {
