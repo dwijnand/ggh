@@ -18,7 +18,14 @@ macro_rules! error {
 
 fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
     let mut cb = RemoteCallbacks::new();
-    cb.credentials(|user, _, _| Cred::ssh_key_from_agent(user));
+    cb.credentials(|_, _, _| {
+        let home = std::env::home_dir().unwrap();
+        let mut publickey = std::path::PathBuf::from(home.to_owned());
+        publickey.push(".ssh/id_rsa.pub");
+        let mut privatekey = std::path::PathBuf::from(home.to_owned());
+        privatekey.push(".ssh/id_rsa");
+        Cred::ssh_key("git", Some(&publickey), &privatekey, None)
+    });
     cb
 }
 
@@ -27,20 +34,21 @@ fn run() -> Result<(), Error> {
 
     let mut remote = try!(repo.find_remote("dwijnand"));
 
-    let mut opts = FetchOptions::new();
-    opts.remote_callbacks(remote_callbacks());
-    try!(remote.fetch(&["z"], Some(&mut opts), None));
+    println!("Fetching from dwijnand remote");
+    try!(remote.fetch(&[], Some(FetchOptions::new().remote_callbacks(remote_callbacks())), None));
 
-    match repo.find_branch("z", BranchType::Remote) {
+    println!("Looking for remote-traching branch z");
+    match repo.find_branch("dwijnand/z", BranchType::Remote) {
         Ok(..)  => println!("found z"),
         Err(..) => println!("not found z"),
     }
 
     try!(create_orphan_branch(repo, "z"));
 
-    let mut opts = PushOptions::new();
-    opts.remote_callbacks(remote_callbacks());
-    try!(remote.push(&["refs/heads/master"], Some(&mut opts)));
+    println!("Pushing to dwijnand remote");
+    try!(remote.push(&["+refs/heads/z:refs/heads/z"], Some(PushOptions::new().remote_callbacks(remote_callbacks()))));
+
+    println!("Done");
 
     Ok(())
 }
@@ -53,7 +61,7 @@ fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Br
 }
 
 fn create_orphan_branch_force<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, Error> {
-    println!("creating branch '{}'", name);
+    println!("Creating branch '{}'", name);
     let tree_b    = try!(repo.treebuilder(None));
     let tree_id   = try!(tree_b.write());
     let tree      = try!(repo.find_tree(tree_id));
