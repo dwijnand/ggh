@@ -37,6 +37,7 @@ fn run() -> Result<(), Error> {
 
     let remote_name = "dwijnand";
     let branch_name = "z";
+    let remote_branch_name = format!("{}/{}", remote_name, branch_name);
 
     let mut remote = try!(repo.find_remote(remote_name));
 
@@ -44,12 +45,14 @@ fn run() -> Result<(), Error> {
     try!(remote.fetch(&[], Some(FetchOptions::new().remote_callbacks(remote_callbacks())), None));
 
     println!("Looking for remote-tracking branch {}", branch_name);
-    match repo.find_branch(&format!("{}/{}", remote_name, branch_name), BranchType::Remote) {
+    match repo.find_branch(&remote_branch_name, BranchType::Remote) {
         Ok(..)  => println!("found {}", branch_name),
         Err(..) => println!("not found {}", branch_name),
     }
 
-    try!(create_orphan_branch(repo, branch_name));
+    if let Err(_) = repo.find_branch(branch_name, BranchType::Local) {
+        try!(create_orphan_branch(repo, branch_name));
+    }
 
     println!("Pushing to {} remote", remote_name);
     let refspec = format!("+refs/heads/{}:refs/heads/{}", branch_name, branch_name);
@@ -61,13 +64,6 @@ fn run() -> Result<(), Error> {
 }
 
 fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, Error> {
-    if let Ok(b) = repo.find_branch(name, BranchType::Local) {
-        return Ok(b);
-    }
-    create_orphan_branch_force(repo, name)
-}
-
-fn create_orphan_branch_force<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, Error> {
     println!("Creating branch '{}'", name);
     let tree_b    = try!(repo.treebuilder(None));
     let tree_id   = try!(tree_b.write());
