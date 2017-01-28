@@ -48,15 +48,19 @@ fn run() -> Result<(), Error> {
     match repo.find_branch(&remote_branch_name, BranchType::Remote) {
         Ok(..)  => println!("found {}", branch_name),
         Err(..) => println!("not found {}", branch_name),
-    }
+    };
 
-    if let Err(_) = repo.find_branch(branch_name, BranchType::Local) {
-        try!(create_orphan_branch(repo, branch_name));
-    }
+    let mut branch = match repo.find_branch(branch_name, BranchType::Local) {
+        Ok(b)   => b,
+        Err(..) => try!(create_orphan_branch(repo, branch_name)),
+    };
 
     println!("Pushing to {} remote", remote_name);
     let refspec = format!("+refs/heads/{}:refs/heads/{}", branch_name, branch_name);
     try!(remote.push(&[&refspec], Some(PushOptions::new().remote_callbacks(remote_callbacks()))));
+
+    println!("Deleting local branch {}", branch_name);
+    try!(branch.delete());
 
     println!("Done");
 
