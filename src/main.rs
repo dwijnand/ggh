@@ -33,16 +33,16 @@ fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
 }
 
 fn run() -> Result<(), Error> {
-    let repo = &try!(Repository::open("/d/guava"));
+    let repo = &Repository::open("/d/guava")?;
 
     let remote_name = "dwijnand";
     let branch_name = "z";
     let remote_branch_name = format!("{}/{}", remote_name, branch_name);
 
-    let mut remote = try!(repo.find_remote(remote_name));
+    let mut remote = repo.find_remote(remote_name)?;
 
     println!("Fetching from {} remote", remote_name);
-    try!(remote.fetch(&[], Some(FetchOptions::new().remote_callbacks(remote_callbacks())), None));
+    remote.fetch(&[], Some(FetchOptions::new().remote_callbacks(remote_callbacks())), None)?;
 
     println!("Looking for remote-tracking branch {}", branch_name);
     match repo.find_branch(&remote_branch_name, BranchType::Remote) {
@@ -52,15 +52,15 @@ fn run() -> Result<(), Error> {
 
     let mut branch = match repo.find_branch(branch_name, BranchType::Local) {
         Ok(b)   => b,
-        Err(..) => try!(create_orphan_branch(repo, branch_name)),
+        Err(..) => create_orphan_branch(repo, branch_name)?,
     };
 
     println!("Pushing to {} remote", remote_name);
     let refspec = format!("+refs/heads/{}:refs/heads/{}", branch_name, branch_name);
-    try!(remote.push(&[&refspec], Some(PushOptions::new().remote_callbacks(remote_callbacks()))));
+    remote.push(&[&refspec], Some(PushOptions::new().remote_callbacks(remote_callbacks())))?;
 
     println!("Deleting local branch {}", branch_name);
-    try!(branch.delete());
+    branch.delete()?;
 
     println!("Done");
 
@@ -69,12 +69,12 @@ fn run() -> Result<(), Error> {
 
 fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, Error> {
     println!("Creating branch '{}'", name);
-    let tree_b    = try!(repo.treebuilder(None));
-    let tree_id   = try!(tree_b.write());
-    let tree      = try!(repo.find_tree(tree_id));
-    let sig       = try!(Signature::new("z", "-", &Time::new(0, 0)));
-    let commit_id = try!(repo.commit(None, &sig, &sig, "", &tree, &[]));
-    let commit    = try!(repo.find_commit(commit_id));
+    let tree_b    = repo.treebuilder(None)?;
+    let tree_id   = tree_b.write()?;
+    let tree      = repo.find_tree(tree_id)?;
+    let sig       = Signature::new("z", "-", &Time::new(0, 0))?;
+    let commit_id = repo.commit(None, &sig, &sig, "", &tree, &[])?;
+    let commit    = repo.find_commit(commit_id)?;
     repo.branch(name, &commit, false)
 }
 
