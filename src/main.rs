@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 extern crate git2;
 
+use std::path::PathBuf;
 use std::io::prelude::*;
 use git2::*;
 
@@ -21,10 +22,10 @@ fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
     cb.credentials(|_, _, _| {
         let home = std::env::home_dir().unwrap();
 
-        let mut publickey = std::path::PathBuf::from(home.to_owned());
+        let mut publickey = PathBuf::from(home.to_owned());
         publickey.push(".ssh/id_rsa.pub");
 
-        let mut privatekey = std::path::PathBuf::from(home.to_owned());
+        let mut privatekey = PathBuf::from(home.to_owned());
         privatekey.push(".ssh/id_rsa");
 
         Cred::ssh_key("git", Some(&publickey), &privatekey, None)
