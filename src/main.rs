@@ -1,18 +1,19 @@
 #![allow(dead_code)]
 extern crate git2;
 
-use std::path::PathBuf;
-use std::io::prelude::*;
+use std::*;
+use path::PathBuf;
+use io::prelude::*;
 use git2::*;
 
 macro_rules! error {
     ($($args:tt)*) => {
         {
-            let stderr = std::io::stderr();
+            let stderr = io::stderr();
             let mut stderr = stderr.lock();
             write!(stderr, "error: ").unwrap();
             writeln!(stderr, $($args)*).unwrap();
-            std::process::exit(1)
+            process::exit(1)
         }
     }
 }
@@ -20,7 +21,7 @@ macro_rules! error {
 fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
     let mut cb = RemoteCallbacks::new();
     cb.credentials(|_, _, _| {
-        let home = std::env::home_dir().unwrap();
+        let home = env::home_dir().unwrap();
 
         let mut publickey = PathBuf::from(home.to_owned());
         publickey.push(".ssh/id_rsa.pub");
