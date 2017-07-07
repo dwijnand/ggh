@@ -69,8 +69,7 @@ fn run() -> Result<(), Error> {
 
 fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, Error> {
     println!("Creating branch '{}'", name);
-    let tree_b    = repo.treebuilder(None)?;
-    let tree_id   = tree_b.write()?;
+    let tree_id   = repo.treebuilder(None)?.write()?;
     let tree      = repo.find_tree(tree_id)?;
     let sig       = Signature::new("z", "-", &Time::new(0, 0))?;
     let commit_id = repo.commit(None, &sig, &sig, "", &tree, &[])?;
