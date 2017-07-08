@@ -80,7 +80,7 @@ fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Br
     repo.branch(name, &commit, false)
 }
 
-fn main() {
+pub fn main() {
     match run() {
         Ok(()) => {},
         Err(e) => error!("{}", e),
