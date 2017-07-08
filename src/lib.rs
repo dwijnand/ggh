@@ -44,19 +44,12 @@ fn run() -> Result<(), Error> {
 
     let mut remote = repo.find_remote(remote_name)?;
 
-    println!("Fetching from {} remote", remote_name);
     remote.fetch(&[], Some(FetchOptions::new().remote_callbacks(remote_callbacks())), None)?;
 
-    println!("Looking for remote branch {}", branch_name);
     match repo.find_branch(&remote_branch_name, BranchType::Remote) {
-        Ok(..)  => println!("found remote branch {}", branch_name),
-        Err(..) => {
-            println!("not found remote branch {}", branch_name);
-            create_remote_branch(repo, branch_name, &mut remote)?
-        },
+        Ok(..)  => (),
+        Err(..) => create_remote_branch(repo, branch_name, &mut remote)?,
     };
-
-    println!("Done");
 
     Ok(())
 }
@@ -67,16 +60,13 @@ fn create_remote_branch(repo: &Repository, branch_name: &str, remote: &mut Remot
         Err(..) => create_orphan_branch(repo, branch_name)?,
     };
 
-    println!("Pushing to {} remote", remote.name().unwrap());
     let refspec = format!("+refs/heads/{}:refs/heads/{}", branch_name, branch_name);
     remote.push(&[&refspec], Some(PushOptions::new().remote_callbacks(remote_callbacks())))?;
 
-    println!("Deleting local branch {}", branch_name);
     branch.delete()
 }
 
 fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, Error> {
-    println!("Creating branch '{}'", name);
     let tree_id   = repo.treebuilder(None)?.write()?;
     let tree      = repo.find_tree(tree_id)?;
     let sig       = Signature::new("z", "-", &Time::new(0, 0))?;
