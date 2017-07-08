@@ -6,12 +6,6 @@ use path::*;
 use io::prelude::*;
 use git2::*;
 
-struct Config<'a> {
-    dir: &'a Path,
-    remote_name: &'a str,
-    branch_name: &'a str,
-}
-
 macro_rules! error {
     ($($args:tt)*) => {
         {
@@ -41,14 +35,11 @@ fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
 }
 
 fn run() -> Result<(), Error> {
-    let c = Config {
-        dir: &env::current_dir().unwrap(),
-        remote_name: "dwijnand",
-        branch_name: "z",
-    };
-    let Config { dir, remote_name, branch_name } = c;
+    let dir = env::current_dir().unwrap();
     let repo = &Repository::open(dir)?;
 
+    let remote_name = "dwijnand";
+    let branch_name = "z";
     let remote_branch_name = format!("{}/{}", remote_name, branch_name);
 
     let mut remote = repo.find_remote(remote_name)?;
