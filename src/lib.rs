@@ -2,9 +2,15 @@
 extern crate git2;
 
 use std::*;
-use path::PathBuf;
+use path::*;
 use io::prelude::*;
 use git2::*;
+
+struct Config<'a> {
+    dir: &'a Path,
+    remote_name: &'a str,
+    branch_name: &'a str,
+}
 
 macro_rules! error {
     ($($args:tt)*) => {
@@ -35,11 +41,14 @@ fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
 }
 
 fn run() -> Result<(), Error> {
-    let dir = env::current_dir().unwrap();
+    let c = Config {
+        dir: &env::current_dir().unwrap(),
+        remote_name: "dwijnand",
+        branch_name: "z",
+    };
+    let Config { dir, remote_name, branch_name } = c;
     let repo = &Repository::open(dir)?;
 
-    let remote_name = "dwijnand";
-    let branch_name = "z";
     let remote_branch_name = format!("{}/{}", remote_name, branch_name);
 
     let mut remote = repo.find_remote(remote_name)?;
@@ -47,10 +56,10 @@ fn run() -> Result<(), Error> {
     println!("Fetching from {} remote", remote_name);
     remote.fetch(&[], Some(FetchOptions::new().remote_callbacks(remote_callbacks())), None)?;
 
-    println!("Looking for remote-tracking branch {}", branch_name);
+    println!("Looking for remote branch {}", branch_name);
     match repo.find_branch(&remote_branch_name, BranchType::Remote) {
-        Ok(..)  => println!("found {}", branch_name),
-        Err(..) => println!("not found {}", branch_name),
+        Ok(..)  => println!("found remote branch {}", branch_name),
+        Err(..) => println!("not found remote branch {}", branch_name),
     };
 
     let mut branch = match repo.find_branch(branch_name, BranchType::Local) {
