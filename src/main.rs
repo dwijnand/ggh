@@ -35,7 +35,8 @@ fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
 }
 
 fn run() -> Result<(), Error> {
-    let repo = &Repository::open("/d/guava")?;
+    let dir = env::current_dir().unwrap();
+    let repo = &Repository::open(dir)?;
 
     let remote_name = "dwijnand";
     let branch_name = "z";
