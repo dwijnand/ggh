@@ -1,10 +1,19 @@
 #![allow(dead_code)]
 extern crate git2;
+extern crate hubcaps;
+extern crate hyper;
+extern crate hyper_native_tls;
 
 use std::*;
+use result::{ Result };
+use Result::{ Ok, Err };
 use path::*;
 use io::prelude::*;
 use git2::*;
+use hubcaps::*;
+use hyper::*;
+use hyper::net::*;
+use hyper_native_tls::*;
 
 macro_rules! error {
     ($($args:tt)*) => {
@@ -73,6 +82,14 @@ fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Br
     let commit_id = repo.commit(None, &sig, &sig, "", &tree, &[])?;
     let commit    = repo.find_commit(commit_id)?;
     repo.branch(name, &commit, false)
+}
+
+fn set_default_branch() {
+    let github = Github::new(
+        String::from("ggh/0.1.0"),
+        Client::with_connector(HttpsConnector::new(NativeTlsClient::new().unwrap())),
+        hubcaps::Credentials::Token(String::from("personal-access-token")),
+    );
 }
 
 pub fn main() {
