@@ -5,3 +5,4 @@ authors = ["Dale Wijnand <dale.wijnand@gmail.com>"]
 
 [dependencies]
 git2 = "0.6"
+hubcaps = "0.3"
