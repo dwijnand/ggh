@@ -34,7 +34,7 @@ fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
     cb
 }
 
-fn run() -> Result<(), Error> {
+fn run() -> Result<(), git2::Error> {
     let dir = env::current_dir().unwrap();
     let repo = &Repository::open(dir)?;
 
@@ -54,7 +54,7 @@ fn run() -> Result<(), Error> {
     Ok(())
 }
 
-fn create_remote_branch(repo: &Repository, branch_name: &str, remote: &mut Remote) -> Result<(), Error> {
+fn create_remote_branch(repo: &Repository, branch_name: &str, remote: &mut Remote) -> Result<(), git2::Error> {
     let mut branch = match repo.find_branch(branch_name, BranchType::Local) {
         Ok(b)   => b,
         Err(..) => create_orphan_branch(repo, branch_name)?,
@@ -66,7 +66,7 @@ fn create_remote_branch(repo: &Repository, branch_name: &str, remote: &mut Remot
     branch.delete()
 }
 
-fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, Error> {
+fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, git2::Error> {
     let tree_id   = Oid::from_str("4b825dc642cb6eb9a060e54bf8d69288fbee4904")?;
     let tree      = repo.find_tree(tree_id)?;
     let sig       = Signature::new("z", "-", &Time::new(0, 0))?;
