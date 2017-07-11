@@ -11,6 +11,7 @@ use path::*;
 use io::prelude::*;
 use git2::*;
 use hubcaps::*;
+use hubcaps::repositories::*;
 use hyper::*;
 use hyper::net::*;
 use hyper_native_tls::*;
@@ -45,7 +46,7 @@ fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
 
 fn run() -> Result<(), git2::Error> {
     let dir = env::current_dir().unwrap();
-    let repo = &Repository::open(dir)?;
+    let repo = &git2::Repository::open(dir)?;
 
     let remote_name = "dwijnand";
     let branch_name = "z";
@@ -63,7 +64,11 @@ fn run() -> Result<(), git2::Error> {
     Ok(())
 }
 
-fn create_remote_branch(repo: &Repository, branch_name: &str, remote: &mut Remote) -> Result<(), git2::Error> {
+// Alternative: do everything with GitHub's API
+// * Create a commit: https://developer.github.com/v3/git/commits/#create-a-commit
+//   empty message, use empty tree sha, no parents
+// * Create a reference: https://developer.github.com/v3/git/refs/#create-a-reference
+fn create_remote_branch(repo: &git2::Repository, branch_name: &str, remote: &mut Remote) -> Result<(), git2::Error> {
     let mut branch = match repo.find_branch(branch_name, BranchType::Local) {
         Ok(b)   => b,
         Err(..) => create_orphan_branch(repo, branch_name)?,
@@ -75,7 +80,7 @@ fn create_remote_branch(repo: &Repository, branch_name: &str, remote: &mut Remot
     branch.delete()
 }
 
-fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Branch<'repo>, git2::Error> {
+fn create_orphan_branch<'repo>(repo: &'repo git2::Repository, name: &str) -> Result<Branch<'repo>, git2::Error> {
     let tree_id   = Oid::from_str("4b825dc642cb6eb9a060e54bf8d69288fbee4904")?;
     let tree      = repo.find_tree(tree_id)?;
     let sig       = Signature::new("z", "-", &Time::new(0, 0))?;
@@ -84,16 +89,25 @@ fn create_orphan_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Br
     repo.branch(name, &commit, false)
 }
 
-fn set_default_branch() {
+// https://developer.github.com/v3/repos/#edit
+fn set_default_branch() -> hubcaps::Result<()> {
     let github = Github::new(
-        String::from("ggh/0.1.0"),
+        format!("ggh/{}", env!("CARGO_PKG_VERSION")),
         Client::with_connector(HttpsConnector::new(NativeTlsClient::new().unwrap())),
         hubcaps::Credentials::Token(String::from("personal-access-token")),
     );
+
+    let repo = github.repo("dwijnand", "guava");
+    repo.edit(&RepoEditOptions::builder("guava").default_branch("z").build())?;
+    Ok(())
 }
 
 pub fn main() {
     match run() {
+        Ok(()) => {},
+        Err(e) => error!("{}", e),
+    }
+    match set_default_branch() {
         Ok(()) => {},
         Err(e) => error!("{}", e),
     }
