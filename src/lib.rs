@@ -35,18 +35,6 @@ mod errors {
 use errors::*;
 use errors::Result;
 
-macro_rules! error {
-    ($($args:tt)*) => {
-        {
-            let stderr = stderr();
-            let mut stderr = stderr.lock();
-            write!(stderr, "error: ").unwrap();
-            writeln!(stderr, $($args)*).unwrap();
-            process::exit(1)
-        }
-    }
-}
-
 fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
     let mut cb = RemoteCallbacks::new();
     cb.credentials(|_, _, _| {
