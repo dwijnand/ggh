@@ -28,6 +28,7 @@ mod errors {
         }
         foreign_links {
             Git(::git2::Error);
+            VarError(::std::env::VarError);
         }
     }
 }
@@ -115,7 +116,7 @@ fn set_default_branch() -> Result<()> {
     let github = Github::new(
         format!("ggh/{}", env!("CARGO_PKG_VERSION")),
         Client::with_connector(HttpsConnector::new(NativeTlsClient::new().unwrap())),
-        hubcaps::Credentials::Token(String::from("personal-access-token")),
+        hubcaps::Credentials::Token(env::var("GITHUB_TOKEN")?),
     );
 
     let repo = github.repo("dwijnand", "guava");
