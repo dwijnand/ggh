@@ -1,14 +1,19 @@
 #![allow(dead_code)]
+
+// `error_chain!` can recurse deeply
+#![recursion_limit = "1024"]
+
+#[macro_use]
+extern crate error_chain;
 extern crate git2;
 extern crate hubcaps;
 extern crate hyper;
 extern crate hyper_native_tls;
 
 use std::*;
-use result::{ Result };
-use Result::{ Ok, Err };
+use result::Result::{ Ok, Err };
 use path::*;
-use io::prelude::*;
+use io::*;
 use git2::*;
 use hubcaps::*;
 use hubcaps::repositories::*;
@@ -16,10 +21,23 @@ use hyper::*;
 use hyper::net::*;
 use hyper_native_tls::*;
 
+mod errors {
+    error_chain!{
+        links {
+            GitHub(::hubcaps::errors::Error, ::hubcaps::errors::ErrorKind);
+        }
+        foreign_links {
+            Git(::git2::Error);
+        }
+    }
+}
+use errors::*;
+use errors::Result;
+
 macro_rules! error {
     ($($args:tt)*) => {
         {
-            let stderr = io::stderr();
+            let stderr = stderr();
             let mut stderr = stderr.lock();
             write!(stderr, "error: ").unwrap();
             writeln!(stderr, $($args)*).unwrap();
@@ -44,23 +62,25 @@ fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
     cb
 }
 
-fn run() -> Result<(), git2::Error> {
+fn run() -> Result<()> {
     let dir = env::current_dir().unwrap();
-    let repo = &git2::Repository::open(dir)?;
+    let repo = &git2::Repository::open(dir).chain_err(|| "Failed to open git repo")?;
 
     let remote_name = "dwijnand";
     let branch_name = "z";
     let remote_branch_name = format!("{}/{}", remote_name, branch_name);
 
-    let mut remote = repo.find_remote(remote_name)?;
+    let mut remote = repo.find_remote(remote_name).chain_err(|| "Failed to find remote")?;
 
-    remote.fetch(&[], Some(FetchOptions::new().remote_callbacks(remote_callbacks())), None)?;
+    remote.fetch(&[], Some(FetchOptions::new().remote_callbacks(remote_callbacks())), None).chain_err(|| "Failed to git fetch")?;
 
     // FIXME: This doesn't look remotely. It looks locally for remote-tracking branches.
     match repo.find_branch(&remote_branch_name, BranchType::Remote) {
         Ok(..)  => (),
-        Err(..) => create_remote_branch(repo, branch_name, &mut remote)?,
+        Err(..) => create_remote_branch(repo, branch_name, &mut remote).chain_err(|| "Failed to create remote branch")?,
     };
+
+    set_default_branch().chain_err(|| "Failed to set the default branch")?;
 
     Ok(())
 }
@@ -69,29 +89,29 @@ fn run() -> Result<(), git2::Error> {
 // * Create a commit: https://developer.github.com/v3/git/commits/#create-a-commit
 //   empty message, use empty tree sha, no parents
 // * Create a reference: https://developer.github.com/v3/git/refs/#create-a-reference
-fn create_remote_branch(repo: &git2::Repository, branch_name: &str, remote: &mut Remote) -> Result<(), git2::Error> {
+fn create_remote_branch(repo: &git2::Repository, branch_name: &str, remote: &mut Remote) -> Result<()> {
     let mut branch = match repo.find_branch(branch_name, BranchType::Local) {
         Ok(b)   => b,
-        Err(..) => create_orphan_branch(repo, branch_name)?,
+        Err(..) => create_orphan_branch(repo, branch_name).chain_err(|| "Failed to create an orphan branch")?,
     };
 
     let refspec = format!("+refs/heads/{}:refs/heads/{}", branch_name, branch_name);
-    remote.push(&[&refspec], Some(PushOptions::new().remote_callbacks(remote_callbacks())))?;
+    remote.push(&[&refspec], Some(PushOptions::new().remote_callbacks(remote_callbacks()))).chain_err(|| "Failed to git push")?;
 
-    branch.delete()
+    branch.delete().chain_err(|| "Failed to delete local branch")
 }
 
-fn create_orphan_branch<'repo>(repo: &'repo git2::Repository, branch_name: &str) -> Result<Branch<'repo>, git2::Error> {
+fn create_orphan_branch<'repo>(repo: &'repo git2::Repository, branch_name: &str) -> Result<Branch<'repo>> {
     let tree_id   = Oid::from_str("4b825dc642cb6eb9a060e54bf8d69288fbee4904")?;
     let tree      = repo.find_tree(tree_id)?;
     let sig       = Signature::new("z", "-", &Time::new(0, 0))?;
-    let commit_id = repo.commit(None, &sig, &sig, "", &tree, &[])?;
+    let commit_id = repo.commit(None, &sig, &sig, "", &tree, &[]).chain_err(|| "Failed to git commit")?;
     let commit    = repo.find_commit(commit_id)?;
-    repo.branch(branch_name, &commit, false)
+    repo.branch(branch_name, &commit, false).chain_err(|| "Failed to create a git branch")
 }
 
 // https://developer.github.com/v3/repos/#edit
-fn set_default_branch() -> hubcaps::Result<()> {
+fn set_default_branch() -> Result<()> {
     let github = Github::new(
         format!("ggh/{}", env!("CARGO_PKG_VERSION")),
         Client::with_connector(HttpsConnector::new(NativeTlsClient::new().unwrap())),
@@ -99,17 +119,19 @@ fn set_default_branch() -> hubcaps::Result<()> {
     );
 
     let repo = github.repo("dwijnand", "guava");
-    repo.edit(&RepoEditOptions::builder("guava").default_branch("z").build())?;
+    repo.edit(&RepoEditOptions::builder("guava").default_branch("z").build()).chain_err(|| "Failed to set default branch")?;
+
     Ok(())
 }
 
 pub fn main() {
-    match run() {
-        Ok(()) => {},
-        Err(e) => error!("from git {:?}", e),
-    }
-    match set_default_branch() {
-        Ok(()) => {},
-        Err(e) => error!("from github {:?}", e),
+    if let Err(ref e) = run() {
+        use std::io::Write;
+        use error_chain::ChainedError; // trait which holds `display`
+        let stderr = &mut stderr();
+        let errmsg = "Error writing to stderr";
+
+        writeln!(stderr, "{}", e.display()).expect(errmsg);
+        process::exit(1);
     }
 }
