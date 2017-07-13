@@ -56,6 +56,7 @@ fn run() -> Result<(), git2::Error> {
 
     remote.fetch(&[], Some(FetchOptions::new().remote_callbacks(remote_callbacks())), None)?;
 
+    // FIXME: This doesn't look remotely. It looks locally for remote-tracking branches.
     match repo.find_branch(&remote_branch_name, BranchType::Remote) {
         Ok(..)  => (),
         Err(..) => create_remote_branch(repo, branch_name, &mut remote)?,
@@ -80,13 +81,13 @@ fn create_remote_branch(repo: &git2::Repository, branch_name: &str, remote: &mut
     branch.delete()
 }
 
-fn create_orphan_branch<'repo>(repo: &'repo git2::Repository, name: &str) -> Result<Branch<'repo>, git2::Error> {
+fn create_orphan_branch<'repo>(repo: &'repo git2::Repository, branch_name: &str) -> Result<Branch<'repo>, git2::Error> {
     let tree_id   = Oid::from_str("4b825dc642cb6eb9a060e54bf8d69288fbee4904")?;
     let tree      = repo.find_tree(tree_id)?;
     let sig       = Signature::new("z", "-", &Time::new(0, 0))?;
     let commit_id = repo.commit(None, &sig, &sig, "", &tree, &[])?;
     let commit    = repo.find_commit(commit_id)?;
-    repo.branch(name, &commit, false)
+    repo.branch(branch_name, &commit, false)
 }
 
 // https://developer.github.com/v3/repos/#edit
@@ -105,10 +106,10 @@ fn set_default_branch() -> hubcaps::Result<()> {
 pub fn main() {
     match run() {
         Ok(()) => {},
-        Err(e) => error!("{}", e),
+        Err(e) => error!("from git {:?}", e),
     }
     match set_default_branch() {
         Ok(()) => {},
-        Err(e) => error!("{}", e),
+        Err(e) => error!("from github {:?}", e),
     }
 }
