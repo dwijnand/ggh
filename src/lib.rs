@@ -52,11 +52,23 @@ fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
 }
 
 fn run() -> Result<()> {
+    let branch_name = "z";
+
+    let remote_name = "dwijnand";
+
     let dir = env::current_dir().unwrap();
     let repo = &git2::Repository::open(dir).chain_err(|| "Failed to open git repo")?;
 
-    let remote_name = "dwijnand";
-    let branch_name = "z";
+    if !has_remote_branch(repo, remote_name, branch_name)? {
+        create_remote_branch(repo, branch_name, remote_name).chain_err(|| "Failed to create remote branch")?
+    }
+
+    set_default_branch().chain_err(|| "Failed to set the default branch")?;
+
+    Ok(())
+}
+
+fn has_remote_branch(repo: &git2::Repository, remote_name: &str, branch_name: &str) -> Result<bool> {
     let remote_branch_name = format!("{}/{}", remote_name, branch_name);
 
     let mut remote = repo.find_remote(remote_name).chain_err(|| "Failed to find remote")?;
@@ -65,26 +77,20 @@ fn run() -> Result<()> {
     fetch_opts.remote_callbacks(remote_callbacks()).prune(FetchPrune::On);
     remote.fetch(&[], Some(&mut fetch_opts), None).chain_err(|| "Failed to git fetch")?;
 
-    match repo.find_branch(&remote_branch_name, BranchType::Remote) {
-        Ok(..)  => (),
-        Err(..) => create_remote_branch(repo, branch_name, &mut remote).chain_err(|| "Failed to create remote branch")?,
-    };
-
-    set_default_branch().chain_err(|| "Failed to set the default branch")?;
-
-    Ok(())
+    Ok(repo.find_branch(&remote_branch_name, BranchType::Remote).is_ok())
 }
 
 // Alternative: do everything with GitHub's API
 // * Create a commit: https://developer.github.com/v3/git/commits/#create-a-commit
 //   empty message, use empty tree sha, no parents
 // * Create a reference: https://developer.github.com/v3/git/refs/#create-a-reference
-fn create_remote_branch(repo: &git2::Repository, branch_name: &str, remote: &mut Remote) -> Result<()> {
+fn create_remote_branch(repo: &git2::Repository, branch_name: &str, remote_name: &str) -> Result<()> {
     let mut branch = match repo.find_branch(branch_name, BranchType::Local) {
         Ok(b)   => b,
         Err(..) => create_orphan_branch(repo, branch_name).chain_err(|| "Failed to create an orphan branch")?,
     };
 
+    let mut remote = repo.find_remote(remote_name).chain_err(|| "Failed to find remote")?;
     let refspec = format!("+refs/heads/{}:refs/heads/{}", branch_name, branch_name);
     remote.push(&[&refspec], Some(PushOptions::new().remote_callbacks(remote_callbacks()))).chain_err(|| "Failed to git push")?;
 
