@@ -61,9 +61,10 @@ fn run() -> Result<()> {
 
     let mut remote = repo.find_remote(remote_name).chain_err(|| "Failed to find remote")?;
 
-    remote.fetch(&[], Some(FetchOptions::new().remote_callbacks(remote_callbacks())), None).chain_err(|| "Failed to git fetch")?;
+    let mut fetch_opts = FetchOptions::new();
+    fetch_opts.remote_callbacks(remote_callbacks()).prune(FetchPrune::On);
+    remote.fetch(&[], Some(&mut fetch_opts), None).chain_err(|| "Failed to git fetch")?;
 
-    // FIXME: This doesn't look remotely. It looks locally for remote-tracking branches.
     match repo.find_branch(&remote_branch_name, BranchType::Remote) {
         Ok(..)  => (),
         Err(..) => create_remote_branch(repo, branch_name, &mut remote).chain_err(|| "Failed to create remote branch")?,
