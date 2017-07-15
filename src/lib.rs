@@ -60,11 +60,17 @@ fn run() -> Result<()> {
     let dir = env::current_dir().unwrap();
     let repo = &git2::Repository::open(dir).chain_err(|| "Failed to open git repo")?;
 
+    let github = Github::new(
+        format!("ggh/{}", env!("CARGO_PKG_VERSION")),
+        Client::with_connector(HttpsConnector::new(NativeTlsClient::new().unwrap())),
+        hubcaps::Credentials::Token(env::var("GITHUB_TOKEN")?),
+    );
+
     if !has_remote_branch(repo, remote_name, branch_name)? {
         create_remote_branch(repo, branch_name, remote_name).chain_err(|| "Failed to create remote branch")?
     }
 
-    set_default_branch().chain_err(|| "Failed to set the default branch")?;
+    set_default_branch(&github).chain_err(|| "Failed to set the default branch")?;
 
     Ok(())
 }
@@ -108,13 +114,7 @@ fn create_orphan_branch<'repo>(repo: &'repo git2::Repository, branch_name: &str)
 }
 
 // https://developer.github.com/v3/repos/#edit
-fn set_default_branch() -> Result<()> {
-    let github = Github::new(
-        format!("ggh/{}", env!("CARGO_PKG_VERSION")),
-        Client::with_connector(HttpsConnector::new(NativeTlsClient::new().unwrap())),
-        hubcaps::Credentials::Token(env::var("GITHUB_TOKEN")?),
-    );
-
+fn set_default_branch(github: &Github) -> Result<()> {
     let repo = github.repo("dwijnand", "guava");
     repo.edit(&RepoEditOptions::builder("guava").default_branch("z").build()).chain_err(|| "Failed to set default branch")?;
 
