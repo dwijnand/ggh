@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Dale Wijnand <dale.wijnand@gmail.com>"]
 
 [dependencies]
+env_logger = "0.4"
 error-chain = "0.10"
 git2 = "0.6"
 hubcaps = "0.3"

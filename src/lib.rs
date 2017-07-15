@@ -3,6 +3,7 @@
 // `error_chain!` can recurse deeply
 #![recursion_limit = "1024"]
 
+extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
 extern crate git2;
@@ -121,6 +122,7 @@ fn set_default_branch() -> Result<()> {
 }
 
 pub fn main() {
+    env_logger::init().unwrap();
     if let Err(ref e) = run() {
         use std::io::Write;
         use error_chain::ChainedError; // trait which holds `display`
