@@ -18,6 +18,7 @@ use io::*;
 use git2::*;
 use hubcaps::*;
 use hubcaps::repositories::*;
+use hubcaps::git::*;
 use hyper::*;
 use hyper::net::*;
 use hyper_native_tls::*;
@@ -66,7 +67,7 @@ fn run() -> Result<()> {
         hubcaps::Credentials::Token(env::var("GITHUB_TOKEN")?),
     );
 
-    if !has_remote_branch(repo, remote_name, branch_name)? {
+    if !has_remote_branch(&github)? {
         create_remote_branch(repo, branch_name, remote_name).chain_err(|| "Failed to create remote branch")?
     }
 
@@ -75,16 +76,14 @@ fn run() -> Result<()> {
     Ok(())
 }
 
-fn has_remote_branch(repo: &git2::Repository, remote_name: &str, branch_name: &str) -> Result<bool> {
-    let remote_branch_name = format!("{}/{}", remote_name, branch_name);
-
-    let mut remote = repo.find_remote(remote_name).chain_err(|| "Failed to find remote")?;
-
-    let mut fetch_opts = FetchOptions::new();
-    fetch_opts.remote_callbacks(remote_callbacks()).prune(FetchPrune::On);
-    remote.fetch(&[], Some(&mut fetch_opts), None).chain_err(|| "Failed to git fetch")?;
-
-    Ok(repo.find_branch(&remote_branch_name, BranchType::Remote).is_ok())
+fn has_remote_branch(github: &Github) -> Result<bool> {
+    let repo = github.repo("dwijnand", "guava");
+    let git = repo.git();
+    Ok(match git.reference("heads/z").chain_err(|| "Failed to get branch z") {
+        Err(..)                                 => false,
+        Ok(GetReferenceResponse::Exact(..))     => true,
+        Ok(GetReferenceResponse::StartWith(..)) => false,
+    })
 }
 
 // Alternative: do everything with GitHub's API
