@@ -106,7 +106,7 @@ fn create_remote_branch(repo: &git2::Repository, branch_name: &str, remote_name:
 fn create_orphan_branch<'repo>(repo: &'repo git2::Repository, branch_name: &str) -> Result<Branch<'repo>> {
     let tree_id   = Oid::from_str("4b825dc642cb6eb9a060e54bf8d69288fbee4904")?;
     let tree      = repo.find_tree(tree_id)?;
-    let sig       = Signature::new("z", "-", &Time::new(0, 0))?;
+    let sig       = git2::Signature::new("z", "-", &Time::new(0, 0))?;
     let commit_id = repo.commit(None, &sig, &sig, "", &tree, &[]).chain_err(|| "Failed to git commit")?;
     let commit    = repo.find_commit(commit_id)?;
     repo.branch(branch_name, &commit, false).chain_err(|| "Failed to create a git branch")

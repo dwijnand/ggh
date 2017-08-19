@@ -206,6 +206,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "hubcaps"
 version = "0.3.12"
+source = "git+https://github.com/dwijnand/hubcaps?branch=git-commits#d3ebd5108582f14e72b60791ecb2bc795d3d5f63"
 dependencies = [
  "error-chain 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.10.12 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -220,7 +221,7 @@ dependencies = [
 name = "hubcaps"
 version = "0.3.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "hubcaps 0.3.12"
+replace = "hubcaps 0.3.12 (git+https://github.com/dwijnand/hubcaps?branch=git-commits)"
 
 [[package]]
 name = "hyper"
@@ -708,6 +709,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum gcc 0.3.52 (registry+https://github.com/rust-lang/crates.io-index)" = "1b7d19683108136d21d32723077e69cd5df2bfd6d102c74a01d743cf2b65cf97"
 "checksum git2 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)" = "aa01936ac96555c083c0e8553f672616274408d9d3fc5b8696603fbf63ff43ee"
 "checksum httparse 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "af2f2dd97457e8fb1ae7c5a420db346af389926e36f43768b96f101546b04a07"
+"checksum hubcaps 0.3.12 (git+https://github.com/dwijnand/hubcaps?branch=git-commits)" = "<none>"
 "checksum hubcaps 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)" = "7300904d9ea1768226910dd4aa136cd415d56c0cf5892f18619583d3b94d5b79"
 "checksum hyper 0.10.12 (registry+https://github.com/rust-lang/crates.io-index)" = "0f01e4a20f5dfa5278d7762b7bdb7cab96e24378b9eca3889fbd4b5e94dc7063"
 "checksum hyper-native-tls 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "72332e4a35d3059583623b50e98e491b78f8b96c5521fcb3f428167955aa56e8"
