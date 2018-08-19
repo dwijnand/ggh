@@ -40,6 +40,7 @@ use errors::Result;
 fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
     let mut cb = RemoteCallbacks::new();
     cb.credentials(|_, _, _| {
+        #[allow(deprecated)] // TODO: Switch to the dirs crate.
         let home = env::home_dir().unwrap();
 
         let mut publickey = PathBuf::from(home.to_owned());
