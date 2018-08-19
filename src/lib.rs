@@ -13,7 +13,6 @@ extern crate hyper_native_tls;
 
 use std::*;
 use result::Result::{ Ok, Err };
-use path::*;
 use io::*;
 use git2::*;
 use hubcaps::*;
@@ -43,10 +42,10 @@ fn remote_callbacks<'a>() -> RemoteCallbacks<'a> {
         #[allow(deprecated)] // TODO: Switch to the dirs crate.
         let home = env::home_dir().unwrap();
 
-        let mut publickey = PathBuf::from(home.to_owned());
+        let mut publickey = home.clone();
         publickey.push(".ssh/id_rsa.pub");
 
-        let mut privatekey = PathBuf::from(home.to_owned());
+        let mut privatekey = home.clone();
         privatekey.push(".ssh/id_rsa");
 
         Cred::ssh_key("git", Some(&publickey), &privatekey, None)
